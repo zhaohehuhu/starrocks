@@ -25,7 +25,7 @@ Creates an external catalog. You can use external catalogs to query data in exte
 ## Syntax
 
 ```SQL
-CREATE EXTERNAL CATALOG <catalog_name>
+CREATE EXTERNAL CATALOG <catalog_name> [IF NOT EXISTS]
 [COMMENT <comment>]
 PROPERTIES ("key"="value", ...)
 ```
