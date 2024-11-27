@@ -5057,4 +5057,30 @@ public class CreateMaterializedViewTest {
         starRocksAssert.dropTable("t3");
         starRocksAssert.dropTable("t4");
     }
+
+
+    @Test
+    public void testHiveMVInExternalCatalog() {
+        try {
+            starRocksAssert.useCatalog("hive0");
+            String sql = "CREATE MATERIALIZED VIEW tpch.supplier_mv " +
+                    "DISTRIBUTED BY HASH(`s_suppkey`) BUCKETS 10 REFRESH MANUAL " +
+                    "AS select s_suppkey, s_nationkey, " +
+                    "sum(s_acctbal) as total_s_acctbal, count(s_phone) as s_phone_count from hive0.tpch.supplier as supp " +
+                    "group by s_suppkey, s_nationkey order by s_suppkey;";
+            UtFrameUtils.parseStmtWithNewParser(sql, connectContext);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("Materialized view can only be created in default_catalog."));
+        }
+    }
+
+    @Test
+    public void testHiveMVInDefaultCatalog() throws Exception {
+        String sql = "CREATE MATERIALIZED VIEW supplier_mv " +
+                "DISTRIBUTED BY HASH(`s_suppkey`) BUCKETS 10 REFRESH MANUAL " +
+                "AS select s_suppkey, s_nationkey, " +
+                "sum(s_acctbal) as total_s_acctbal, count(s_phone) as s_phone_count from hive0.tpch.supplier as supp " +
+                "group by s_suppkey, s_nationkey order by s_suppkey;";
+        UtFrameUtils.parseStmtWithNewParser(sql, connectContext);
+    }
 }
