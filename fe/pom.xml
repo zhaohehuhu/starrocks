@@ -616,10 +616,6 @@ under the License.
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-reload4j</artifactId>
                     </exclusion>
-                    <exclusion>
-                        <groupId>com.sun.jersey</groupId>
-                        <artifactId>jersey-core</artifactId>
-                    </exclusion>
                 </exclusions>
             </dependency>
 
@@ -699,10 +695,6 @@ under the License.
                     <exclusion>
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-reload4j</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.sun.jersey</groupId>
-                        <artifactId>jersey-core</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
