@@ -31,21 +31,30 @@ import com.starrocks.common.ErrorCode;
 import com.starrocks.common.ErrorReport;
 import com.starrocks.common.FeConstants;
 import com.starrocks.common.util.UDFInternalClassLoader;
+import com.starrocks.common.util.UDFS3InternalClassLoader;
+import com.starrocks.credential.CloudType;
 import com.starrocks.qe.ConnectContext;
+import com.starrocks.server.GlobalStateMgr;
 import com.starrocks.sql.ast.CreateFunctionStmt;
 import com.starrocks.sql.ast.FunctionArgsDef;
 import com.starrocks.sql.ast.HdfsURI;
 import com.starrocks.sql.ast.expression.FunctionName;
 import com.starrocks.sql.ast.expression.TypeDef;
+import com.starrocks.storagevolume.StorageVolume;
 import com.starrocks.thrift.TFunctionBinaryType;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.StringUtils;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
@@ -57,6 +66,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static com.starrocks.connector.share.credential.CloudConfigurationConstants.AWS_S3_ACCESS_KEY;
+import static com.starrocks.connector.share.credential.CloudConfigurationConstants.AWS_S3_REGION;
+import static com.starrocks.connector.share.credential.CloudConfigurationConstants.AWS_S3_SECRET_KEY;
 
 public class CreateFunctionAnalyzer {
     public void analyze(CreateFunctionStmt stmt, ConnectContext context) {
@@ -104,10 +117,32 @@ public class CreateFunctionAnalyzer {
         }
 
         try {
-            URL url = new URL(objectFile);
-            URLConnection urlConnection = url.openConnection();
-            InputStream inputStream = urlConnection.getInputStream();
-
+            InputStream inputStream = null;
+            if(objectFile.startsWith("s3")) {
+                StorageVolume sv = GlobalStateMgr.getCurrentState().getStorageVolumeMgr().getDefaultStorageVolume();
+                if (sv == null || sv.getCloudConfiguration().getCloudType() != CloudType.AWS) {
+                    ErrorReport.reportSemanticException(ErrorCode.ERR_COMMON_ERROR,
+                            "No default S3 storage volume. Please create a S3 storage volume and set it as default");
+                }
+                Map<String, String> svProperties = sv.getProperties();
+                AwsBasicCredentials awsBasicCredential = AwsBasicCredentials.create(
+                        svProperties.get(AWS_S3_ACCESS_KEY),
+                        svProperties.get(AWS_S3_SECRET_KEY));
+                S3Client s3Client = S3Client.builder()
+                        .region(Region.of(svProperties.get(AWS_S3_REGION)))
+                        .credentialsProvider(StaticCredentialsProvider.create(awsBasicCredential))
+                        .build();
+                URI uri = URI.create(objectFile);
+                String bucket = uri.getHost();
+                String key = uri.getPath().startsWith("/") ? uri.getPath().substring(1) : uri.getPath();
+                inputStream = s3Client.getObject(
+                        builder -> builder.bucket(bucket).key(key)
+                );
+            } else {
+                URL url = new URL(objectFile);
+                URLConnection urlConnection = url.openConnection();
+                inputStream = urlConnection.getInputStream();
+            }
             MessageDigest digest = MessageDigest.getInstance("MD5");
             byte[] buf = new byte[4096];
             int bytesRead = 0;
@@ -133,6 +168,13 @@ public class CreateFunctionAnalyzer {
         return checksum;
     }
 
+    private URLClassLoader getUDFClassLoader(String objectFile, Map<String, String> svProperties) throws IOException {
+        if (objectFile.startsWith("s3")) {
+            return new UDFS3InternalClassLoader(objectFile, svProperties);
+        }
+        return new UDFInternalClassLoader(objectFile);
+    }
+
     private void analyzeJavaUDFClass(CreateFunctionStmt stmt, String checksum) {
         Map<String, String> properties = stmt.getProperties();
         String className = properties.get(CreateFunctionStmt.SYMBOL_KEY);
@@ -147,7 +189,9 @@ public class CreateFunctionAnalyzer {
 
         try {
             System.setSecurityManager(new UDFSecurityManager(UDFInternalClassLoader.class));
-            try (URLClassLoader classLoader = new UDFInternalClassLoader(objectFile)) {
+            StorageVolume sv = GlobalStateMgr.getCurrentState().getStorageVolumeMgr().getDefaultStorageVolume();
+            Map<String, String> svProperties = sv.getProperties();
+            try (URLClassLoader classLoader = getUDFClassLoader(objectFile, svProperties)) {
                 handleClass.setClazz(classLoader.loadClass(className));
                 handleClass.collectMethods();
 
