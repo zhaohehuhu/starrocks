@@ -17,12 +17,15 @@ package com.starrocks.connector.iceberg;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.starrocks.analysis.SlotDescriptor;
+import com.starrocks.catalog.PrimitiveType;
 import com.starrocks.thrift.TExprMinMaxValue;
 import com.starrocks.thrift.TExprNodeType;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.types.Conversions;
 import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -31,6 +34,8 @@ import java.util.Map;
 import java.util.Set;
 
 public final class IcebergUtil {
+    private static final Logger log = LoggerFactory.getLogger(IcebergUtil.class);
+
     public static String fileName(String path) {
         return path.substring(path.lastIndexOf('/') + 1);
     }
@@ -42,6 +47,9 @@ public final class IcebergUtil {
         long valueCount;
 
         private boolean toThrift(SlotDescriptor slot, TExprMinMaxValue texpr) {
+            PrimitiveType primitiveType = slot.getType().getPrimitiveType(); // ensure type is initialized
+            String columnName = slot.getColumn().getName();
+            try {
             texpr.setHas_null((nullValueCount > 0));
             texpr.setAll_null((valueCount == nullValueCount));
             if (valueCount == nullValueCount) {
@@ -62,8 +70,8 @@ public final class IcebergUtil {
                 case INT:
                 case DATE:
                     texpr.setType(TExprNodeType.INT_LITERAL);
-                    texpr.setMin_int_value((Long) minValue);
-                    texpr.setMax_int_value((Long) maxValue);
+                    texpr.setMin_int_value((Integer) minValue);
+                    texpr.setMax_int_value((Integer) maxValue);
                     break;
                 case BIGINT:
                 case TIME:
@@ -84,6 +92,10 @@ public final class IcebergUtil {
                 default:
                     // Unsupported type for min/max optimization
                     return false;
+            }
+            } catch (Exception e) {
+                log.error(primitiveType + ":" + columnName);
+                return false;
             }
             return true;
         }

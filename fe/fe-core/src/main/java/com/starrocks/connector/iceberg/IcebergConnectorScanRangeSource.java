@@ -134,6 +134,7 @@ public class IcebergConnectorScanRangeSource extends ConnectorScanRangeSource {
 
     private List<TScanRangeLocations> toScanRanges(FileScanTask fileScanTask) {
         long partitionId;
+        String location = fileScanTask.file().location();
         try {
             partitionId = addPartition(fileScanTask);
         } catch (AnalysisException e) {
@@ -147,7 +148,7 @@ public class IcebergConnectorScanRangeSource extends ConnectorScanRangeSource {
                 return buildDeleteFileScanRanges(fileScanTask, partitionId);
             }
         } catch (Exception e) {
-            LOG.error("build scan range failed", e);
+            LOG.error(location + " build scan range failed", e);
             throw new StarRocksConnectorException("build scan range failed", e);
         }
     }
