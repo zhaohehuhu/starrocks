@@ -69,6 +69,7 @@ public abstract class MVPCTRefreshPartitioner {
     protected final Database db;
     protected final MaterializedView mv;
     private final Logger logger;
+    private static final String NULL_PARTITION = "pNULL";
 
     public MVPCTRefreshPartitioner(MvTaskRunContext mvContext,
                                    TaskRunContext context,
@@ -358,6 +359,10 @@ public abstract class MVPCTRefreshPartitioner {
             // filter partitions by partition_retention_condition
             String ttlCondition = mv.getTableProperty().getPartitionRetentionCondition();
             if (!Strings.isNullOrEmpty(ttlCondition)) {
+                if (toRefreshPartitions.containsKey(NULL_PARTITION)) {
+                    logger.info("Filter partitions by partition_retention_condition, and remove null partition");
+                    toRefreshPartitions.remove(NULL_PARTITION);
+                }
                 List<String> expiredPartitionNames = getExpiredPartitionsByRetentionCondition(db, mv, ttlCondition,
                         toRefreshPartitions, isMockPartitionIds);
                 // remove the expired partitions
