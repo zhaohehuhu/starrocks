@@ -140,7 +140,7 @@ StatusOr<std::string_view> VariantValue::load_metadata(const std::string_view va
         return Status::InvalidArgument("Variant too short to contain dict_size");
     }
 
-    uint32_t dict_size = VariantUtil::readLittleEndianUnsigned(variant.data() + 1, offset_size);
+    uint32_t dict_size = VariantUtil::read_little_endian_unsigned32(variant.data() + 1, offset_size);
     uint32_t offset_list_offset = kHeaderSize + offset_size;
 
     // Check for potential overflow in offset list size calculation
@@ -155,7 +155,7 @@ StatusOr<std::string_view> VariantValue::load_metadata(const std::string_view va
         return Status::InvalidArgument("Variant too short to contain all offsets");
     }
 
-    uint32_t last_data_size = VariantUtil::readLittleEndianUnsigned(variant.data() + last_offset_pos, offset_size);
+    uint32_t last_data_size = VariantUtil::read_little_endian_unsigned32(variant.data() + last_offset_pos, offset_size);
     uint32_t end_offset = data_offset + last_data_size;
 
     if (end_offset > variant.size()) {

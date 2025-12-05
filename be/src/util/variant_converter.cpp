@@ -64,7 +64,8 @@ Status cast_variant_to_string(const Variant& variant, const cctz::time_zone& zon
                               ColumnBuilder<TYPE_VARCHAR>& result) {
     switch (variant.type()) {
     case VariantType::NULL_TYPE: {
-        result.append_null();
+        const VariantValue null_value = VariantValue::of_null();
+        result.append(null_value.to_string());
         return Status::OK();
     }
     case VariantType::STRING: {

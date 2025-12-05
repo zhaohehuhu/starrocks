@@ -272,15 +272,13 @@ public:
     Status read_range(const Range<uint64_t>& range, const Filter* filter, ColumnPtr& dst) override;
 
     void get_levels(level_t** def_levels, level_t** rep_levels, size_t* num_levels) override {
-        // Use value reader to get levels since it determines nullability
-        // Check if reader is initialized to prevent null pointer dereference
-        if (_value_reader == nullptr) {
-            if (def_levels) *def_levels = nullptr;
-            if (rep_levels) *rep_levels = nullptr;
-            if (num_levels) *num_levels = 0;
-            return;
+        if (_metadata_reader != nullptr) {
+            _metadata_reader->get_levels(def_levels, rep_levels, num_levels);
         }
-        _value_reader->get_levels(def_levels, rep_levels, num_levels);
+
+        if (_value_reader != nullptr) {
+            _value_reader->get_levels(def_levels, rep_levels, num_levels);
+        }
     }
 
     void set_need_parse_levels(bool need_parse_levels) override {
