@@ -16,6 +16,7 @@
 #include "column/column_viewer.h"
 #include "column/map_column.h"
 #include "exprs/cast_expr.h"
+#include "util/variant.h"
 
 namespace starrocks {
 
@@ -64,14 +65,14 @@ StatusOr<ColumnPtr> CastJsonToMap::evaluate_checked(ExprContext* context, Chunk*
         SlotId slot_id = down_cast<ColumnRef*>(_key_cast_expr->get_child(0))->slot_id();
         chunk->append_column(keys_column, slot_id);
         ASSIGN_OR_RETURN(auto result, _key_cast_expr->evaluate_checked(context, chunk.get()));
-        keys_column = ColumnHelper::cast_to_nullable_column(result);
+        keys_column = ColumnHelper::cast_to_nullable_column(std::move(result));
     }
     if (_value_cast_expr != nullptr) {
         ChunkPtr chunk = std::make_shared<Chunk>();
         SlotId slot_id = down_cast<ColumnRef*>(_value_cast_expr->get_child(0))->slot_id();
         chunk->append_column(values_column, slot_id);
         ASSIGN_OR_RETURN(auto result, _value_cast_expr->evaluate_checked(context, chunk.get()));
-        values_column = ColumnHelper::cast_to_nullable_column(result);
+        values_column = ColumnHelper::cast_to_nullable_column(std::move(result));
     }
 
     auto map_column = MapColumn::create(std::move(keys_column), std::move(values_column), std::move(offsets_column));
@@ -105,15 +106,31 @@ StatusOr<ColumnPtr> CastVariantToMap::evaluate_checked(ExprContext* context, Chu
         Variant variant(variant_value->get_metadata(), variant_value->get_value());
         // Only OBJECT type can be cast to MAP, other types are set to null
         if (variant.type() == VariantType::OBJECT) {
-            ASSIGN_OR_RETURN(const auto object_info, get_object_info(variant.value()));
+            ASSIGN_OR_RETURN(const auto object_info, variant_detail::get_object_info(variant.value()));
             const uint32_t map_size = object_info.num_elements;
             VariantMetadata variant_metadata = variant.metadata();
             for (uint32_t idx = 0; idx < map_size; idx++) {
-                ASSIGN_OR_RETURN(auto key, variant_metadata.get_key(idx));
+                // read field id from the value
+                uint32_t filed_id = VariantUtil::read_little_endian_unsigned32(
+                        variant.value().data() + object_info.id_start_offset + idx * object_info.id_size,
+                        object_info.id_size);
+                uint32_t offset_pos = VariantUtil::read_little_endian_unsigned32(
+                        variant.value().data() + object_info.offset_start_offset + idx * object_info.offset_size,
+                        object_info.offset_size);
+                ASSIGN_OR_RETURN(std::string key, variant_metadata.get_key(filed_id));
+                uint32_t next_pos = object_info.data_start_offset + offset_pos;
+                if (next_pos >= variant.value().size()) {
+                    return Status::InternalError("Cannot get variant object field value by key: " + key +
+                                                 ", offset out of bounds");
+                }
+
                 keys_builder.append(Slice(std::string(key)));
-                ASSIGN_OR_RETURN(auto value, variant.get_object_by_key(key));
-                values_builder.append(VariantValue::of_variant(value));
+                auto value = std::string(variant.value().substr(next_pos, variant.value().size() - next_pos));
+                ASSIGN_OR_RETURN(VariantValue result,
+                                 VariantValue::create(Slice(variant_value->get_metadata()), Slice(value)));
+                values_builder.append(std::move(result));
             }
+
             offset += map_size;
             null_column->append(0);
         } else {
@@ -121,6 +138,7 @@ StatusOr<ColumnPtr> CastVariantToMap::evaluate_checked(ExprContext* context, Chu
         }
     }
 
+    offsets_column->append(offset);
     auto keys_column = keys_builder.build_nullable_column();
     auto values_column = values_builder.build_nullable_column();
 
@@ -129,16 +147,16 @@ StatusOr<ColumnPtr> CastVariantToMap::evaluate_checked(ExprContext* context, Chu
         ChunkPtr chunk = std::make_shared<Chunk>();
         SlotId slot_id = down_cast<ColumnRef*>(_key_cast_expr->get_child(0))->slot_id();
         chunk->append_column(keys_column, slot_id);
-        ASSIGN_OR_RETURN(const auto result, _key_cast_expr->evaluate_checked(context, chunk.get()));
-        keys_column = ColumnHelper::cast_to_nullable_column(result);
+        ASSIGN_OR_RETURN(auto result, _key_cast_expr->evaluate_checked(context, chunk.get()));
+        keys_column = ColumnHelper::cast_to_nullable_column(std::move(result));
     }
     // 3. Try to cast values if required
     if (values_need_cast()) {
         ChunkPtr chunk = std::make_shared<Chunk>();
         SlotId slot_id = down_cast<ColumnRef*>(_value_cast_expr->get_child(0))->slot_id();
         chunk->append_column(values_column, slot_id);
-        ASSIGN_OR_RETURN(const auto result, _value_cast_expr->evaluate_checked(context, chunk.get()));
-        values_column = ColumnHelper::cast_to_nullable_column(result);
+        ASSIGN_OR_RETURN(auto result, _value_cast_expr->evaluate_checked(context, chunk.get()));
+        values_column = ColumnHelper::cast_to_nullable_column(std::move(result));
     }
 
     // 4. Move to MapColumn

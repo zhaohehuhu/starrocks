@@ -17,14 +17,14 @@
 #include "column/column_builder.h"
 #include "column/type_traits.h"
 #include "common/statusor.h"
-#include "formats/parquet/variant.h"
 #include "types/logical_type.h"
-#include "variant_util.h"
+#include "util/variant.h"
 
 namespace starrocks {
 
-#define VARIANT_CAST_NOT_SUPPORT(variant_type, logical_type)                                                         \
-    Status::NotSupported(fmt::format("Cannot cast variant({}) to type: ", VariantUtil::type_to_string(variant_type), \
+#define VARIANT_CAST_NOT_SUPPORT(variant_type, logical_type)                            \
+    Status::NotSupported(fmt::format("Cannot cast variant({}) to type: {}",             \
+                                     VariantUtil::variant_type_to_string(variant_type), \
                                      logical_type_to_string(logical_type)))
 
 Status cast_variant_to_bool(const Variant& variant, ColumnBuilder<TYPE_BOOLEAN>& result);
@@ -48,13 +48,17 @@ Status cast_variant_to_arithmetic(const Variant& variant, ColumnBuilder<ResultTy
         result.append_null();
         return Status::OK();
     }
-        VARIANT_CAST_CASE(BOOLEAN, get_bool)
+        VARIANT_CAST_CASE(BOOLEAN_TRUE, get_bool)
+        VARIANT_CAST_CASE(BOOLEAN_FALSE, get_bool)
         VARIANT_CAST_CASE(INT8, get_int8)
         VARIANT_CAST_CASE(INT16, get_int16)
         VARIANT_CAST_CASE(INT32, get_int32)
         VARIANT_CAST_CASE(INT64, get_int64)
         VARIANT_CAST_CASE(FLOAT, get_float)
         VARIANT_CAST_CASE(DOUBLE, get_double)
+        VARIANT_CAST_CASE(DECIMAL4, get_decimal4)
+        VARIANT_CAST_CASE(DECIMAL8, get_decimal8)
+        VARIANT_CAST_CASE(DECIMAL16, get_decimal16)
     default:
         return VARIANT_CAST_NOT_SUPPORT(type, ResultType);
     }
@@ -64,11 +68,12 @@ template <LogicalType ResultType, bool AllowThrowException>
 static Status cast_variant_value_to(const Variant& variant, const cctz::time_zone& zone,
                                     ColumnBuilder<ResultType>& result) {
     const VariantType variant_type = variant.type();
-    // Supported types: arithmetic, string, decimal, variant
+    // Supported types: arithmetic, string, variant
     // Some casting require more information like target type within ARRAY/MAP/STRUCT which is not available here:
     // VARIANT -> ARRAY<ANY>: CastVariantToArray
     // VARIANT -> MAP<VARCHAR, ANY>: CastVariantToMap
     // VARIANT -> STRUCT<...>: CastVariantToStruct
+    // VARIANT -> Decimal types: DecimalNonDecimalCast
     if constexpr (!lt_is_arithmetic<ResultType> && !lt_is_string<ResultType> && ResultType != TYPE_VARIANT) {
         if constexpr (AllowThrowException) {
             return VARIANT_CAST_NOT_SUPPORT(variant_type, ResultType);
@@ -99,11 +104,9 @@ static Status cast_variant_value_to(const Variant& variant, const cctz::time_zon
 
     if (!status.ok()) {
         if constexpr (AllowThrowException) {
-            return Status::InternalError(
-                    fmt::format("Fail to cast variant: {}", logical_type_to_string(ResultType), status.to_string()));
+            return Status::InternalError(fmt::format("Fail to cast variant: {}, error: {}",
+                                                     logical_type_to_string(ResultType), status.to_string()));
         } else {
-            LOG(WARNING) << "Fail to cast variant(type=" << VariantUtil::type_to_string(variant_type) << ") to "
-                         << logical_type_to_string(ResultType) << ": " << status.to_string();
             result.append_null();
         }
     }
