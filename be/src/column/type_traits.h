@@ -281,7 +281,7 @@ struct RunTimeTypeTraits<TYPE_JSON> {
 
 template <>
 struct RunTimeTypeTraits<TYPE_VARIANT> {
-    using CppType = VariantValue*;
+    using CppType = VariantRowValue*;
     using ColumnType = VariantColumn;
     using ProxyContainerType = ColumnType::Container;
 };
@@ -497,10 +497,10 @@ struct RunTimeTypeLimits<TYPE_JSON> {
 
 template <>
 struct RunTimeTypeLimits<TYPE_VARIANT> {
-    using value_type = VariantValue;
+    using value_type = VariantRowValue;
 
-    static value_type min_value() { return VariantValue::of_null(); }
-    static value_type max_value() { return VariantValue::create(Slice::max_value()).value(); }
+    static value_type min_value() { return VariantRowValue::from_null(); }
+    static value_type max_value() { return VariantRowValue::create(Slice::max_value()).value(); }
 };
 
 } // namespace starrocks

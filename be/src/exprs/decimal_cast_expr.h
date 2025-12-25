@@ -40,7 +40,7 @@ struct DecimalDecimalCast {
 
         // source type and target type has the same logical type and scale
         if (to_scale == from_scale && Type == ResultType) {
-            auto result = (std::move(*column)).mutate();
+            auto result = column->clone();
             ColumnHelper::cast_to_raw<Type>(result.get())->set_precision(to_precision);
             return result;
         }
@@ -152,7 +152,7 @@ struct DecimalNonDecimalCast<overflow_mode, DecimalType, NonDecimalType, Decimal
     static inline ColumnPtr _decimal_from(const ColumnPtr& column, int precision, int scale) {
         const auto num_rows = column->size();
         typename DecimalColumnType::MutablePtr result = DecimalColumnType::create(precision, scale, num_rows);
-        const auto data = &ColumnHelper::cast_to_raw<NonDecimalType>(column.get())->get_data().front();
+        const auto data = &ColumnHelper::cast_to_raw<NonDecimalType>(column.get())->immutable_data().front();
         auto result_data = &ColumnHelper::cast_to_raw<DecimalType>(result.get())->get_data().front();
         NullColumn::MutablePtr null_column;
         NullColumn::ValueType* nulls = nullptr;
@@ -443,8 +443,8 @@ inline static bool convert_variant_decimal(SrcType src_value, int src_scale, Dst
 }
 
 template <typename DecimalCppType>
-inline static StatusOr<bool> cast_variant_to_decimal(DecimalCppType* dst_value, const Variant& variant, int precision,
-                                                     int scale) {
+inline static StatusOr<bool> cast_variant_to_decimal(DecimalCppType* dst_value, const VariantValue& variant,
+                                                     int precision, int scale) {
     const VariantType type = variant.type();
     bool overflow = false;
 
@@ -554,16 +554,20 @@ struct DecimalNonDecimalCast<overflow_mode, DecimalType, VariantType, DecimalLTG
 
         const auto variant_column = ColumnHelper::cast_to_raw<VariantType>(column);
         for (auto i = 0; i < num_rows; ++i) {
-            const VariantValue* variant_value = variant_column->get_object(i);
-            Variant variant(variant_value->get_metadata(), variant_value->get_value());
-            auto overflow = cast_variant_to_decimal<DecimalCppType>(&result_data[i], variant,
-                                                                    precision, scale);
+            const VariantRowValue* variant = variant_column->get_object(i);
+            const VariantValue& value = variant->get_value();
 
+            if constexpr (check_overflow<overflow_mode>) {
+                if (value.type() == VariantType::NULL_TYPE) {
+                    has_null = true;
+                    nulls[i] = DATUM_NULL;
+                    continue;
+                }
+            }
+
+            auto overflow = cast_variant_to_decimal<DecimalCppType>(&result_data[i], value, precision, scale);
             if (!overflow.ok()) {
-                // Set null if the cast itself fails.
-                has_null = true;
-                nulls[i] = DATUM_NULL;
-                continue;
+                throw std::runtime_error(overflow.status().to_string());
             }
 
             if constexpr (check_overflow<overflow_mode>) {
