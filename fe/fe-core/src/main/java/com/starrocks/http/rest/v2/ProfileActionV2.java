@@ -68,13 +68,17 @@ public class ProfileActionV2 extends RestBaseAction {
             // If the query profile is not found in the local fe's ProfileManager,
             // we will query other frontend nodes to get the query profile.
             String queryPath = String.format(QUERY_PLAN_URI, queryId);
-            List<String> profileList = fetchResultFromOtherFrontendNodes(queryPath, authorization, HttpMethod.GET, false);
+            List<String> profileList =
+                    fetchResultFromOtherFrontendNodes(queryPath, authorization, HttpMethod.GET, false);
             for (String profile : profileList) {
                 if (profile != null) {
                     RestBaseResultV2<String> queryProfileResult = GsonUtils.GSON.fromJson(
                             profile,
                             new TypeToken<RestBaseResultV2<String>>() {
                             }.getType());
+                    if (queryProfileResult == null || queryProfileResult.getResult() == null) {
+                        continue;
+                    }
                     sendSuccessResponse(response, queryProfileResult.getResult(), request);
                     return;
                 }
