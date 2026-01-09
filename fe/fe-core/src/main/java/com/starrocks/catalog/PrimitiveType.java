@@ -115,6 +115,7 @@ public enum PrimitiveType {
                     .add(BOOLEAN)
                     .addAll(NUMBER_TYPE_LIST)
                     .addAll(STRING_TYPE_LIST)
+                    .add(VARIANT)
                     .build();
     // TODO(mofei) support them
     public static final ImmutableList<PrimitiveType> JSON_UNCOMPATIBLE_TYPE =
