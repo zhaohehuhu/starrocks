@@ -125,12 +125,15 @@ public enum PrimitiveType {
             new ImmutableList.Builder<PrimitiveType>()
                     .add(BOOLEAN)
                     .addAll(NUMBER_TYPE_LIST)
+                    .add(DATE)
+                    .add(DATETIME)
+                    .add(TIME)
                     .addAll(STRING_TYPE_LIST)
                     .add(JSON)
                     .build();
 
-    public static final ImmutableList<PrimitiveType> VARIANT_UNCOMPATIBLE_TYPE =
-            ImmutableList.of(DATE, DATETIME, TIME, HLL, BITMAP, PERCENTILE, FUNCTION, VARBINARY);
+    public static final ImmutableList<PrimitiveType> VARIANT_INCOMPATIBLE_TYPES =
+            ImmutableList.of(HLL, BITMAP, PERCENTILE, FUNCTION, VARBINARY);
 
     private static final ImmutableList<PrimitiveType> TIME_TYPE_LIST =
             ImmutableList.of(TIME, DATE, DATETIME);
@@ -155,24 +158,6 @@ public enum PrimitiveType {
                     .addAll(TIME_TYPE_LIST)
                     .addAll(STRING_TYPE_LIST)
                     .build();
-    private static final ImmutableSortedSet<String> VARIABLE_TYPE_SET =
-            ImmutableSortedSet.orderedBy(String.CASE_INSENSITIVE_ORDER)
-                    .add(PrimitiveType.CHAR.toString())
-                    .add(PrimitiveType.VARCHAR.toString())
-                    .add(PrimitiveType.DECIMALV2.toString())
-                    .add(PrimitiveType.DECIMAL32.toString())
-                    .add(PrimitiveType.DECIMAL64.toString())
-                    .add(PrimitiveType.DECIMAL128.toString())
-                    .add("DECIMAL") // generic name for all decimal types
-                    .build();
-
-    public static boolean isVariableType(String typeName) {
-        return VARIABLE_TYPE_SET.contains(typeName);
-    }
-
-    public static boolean isStaticType(String typeName) {
-        return !VARIABLE_TYPE_SET.contains(typeName);
-    }
 
     static {
         ImmutableSetMultimap.Builder<PrimitiveType, PrimitiveType> builder = ImmutableSetMultimap.builder();
@@ -225,9 +210,8 @@ public enum PrimitiveType {
         builder.putAll(VARIANT, VARIANT);
         builder.putAll(VARIANT, NULL_TYPE);
         for (PrimitiveType type : VARIANT_COMPATIBLE_TYPE) {
-            // TODO(xuba): support implicit cast from other types to VARIANT
-            // builder.put(type, VARIANT);
             builder.put(VARIANT, type);
+            builder.put(type, VARIANT);
         }
 
         IMPLICIT_CAST_MAP = builder.build();

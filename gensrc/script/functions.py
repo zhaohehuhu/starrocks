@@ -386,29 +386,29 @@ vectorized_functions = [
      'StringFunctions::ngram_search_case_insensitive', 'StringFunctions::ngram_search_case_insensitive_prepare',
      'StringFunctions::ngram_search_close'],
 
-    [30450, 'field', True, False, 'INT', ['VARCHAR', '...'], 'StringFunctions::field<TYPE_VARCHAR>', 
+    [30450, 'field', True, False, 'INT', ['VARCHAR', '...'], 'StringFunctions::field<TYPE_VARCHAR>',
      'StringFunctions::field_prepare<TYPE_VARCHAR>', 'StringFunctions::field_close<TYPE_VARCHAR>'],
-    [30451, 'field', True, False, 'INT', ['BOOLEAN', '...'], 'StringFunctions::field<TYPE_BOOLEAN>', 
+    [30451, 'field', True, False, 'INT', ['BOOLEAN', '...'], 'StringFunctions::field<TYPE_BOOLEAN>',
      'StringFunctions::field_prepare<TYPE_BOOLEAN>', 'StringFunctions::field_close<TYPE_BOOLEAN>'],
-    [30452, 'field', True, False, 'INT', ['TINYINT', '...'], 'StringFunctions::field<TYPE_TINYINT>', 
+    [30452, 'field', True, False, 'INT', ['TINYINT', '...'], 'StringFunctions::field<TYPE_TINYINT>',
      'StringFunctions::field_prepare<TYPE_TINYINT>', 'StringFunctions::field_close<TYPE_TINYINT>'],
-    [30453, 'field', True, False, 'INT', ['SMALLINT', '...'], 'StringFunctions::field<TYPE_SMALLINT>', 
+    [30453, 'field', True, False, 'INT', ['SMALLINT', '...'], 'StringFunctions::field<TYPE_SMALLINT>',
      'StringFunctions::field_prepare<TYPE_SMALLINT>', 'StringFunctions::field_close<TYPE_SMALLINT>'],
-    [30454, 'field', True, False, 'INT', ['INT', '...'], 'StringFunctions::field<TYPE_INT>', 
+    [30454, 'field', True, False, 'INT', ['INT', '...'], 'StringFunctions::field<TYPE_INT>',
      'StringFunctions::field_prepare<TYPE_INT>', 'StringFunctions::field_close<TYPE_INT>'],
-    [30455, 'field', True, False, 'INT', ['BIGINT', '...'], 'StringFunctions::field<TYPE_BIGINT>', 
+    [30455, 'field', True, False, 'INT', ['BIGINT', '...'], 'StringFunctions::field<TYPE_BIGINT>',
      'StringFunctions::field_prepare<TYPE_BIGINT>', 'StringFunctions::field_close<TYPE_BIGINT>'],
-    [30456, 'field', True, False, 'INT', ['LARGEINT', '...'], 'StringFunctions::field<TYPE_LARGEINT>', 
+    [30456, 'field', True, False, 'INT', ['LARGEINT', '...'], 'StringFunctions::field<TYPE_LARGEINT>',
      'StringFunctions::field_prepare<TYPE_LARGEINT>', 'StringFunctions::field_close<TYPE_LARGEINT>'],
-    [30457, 'field', True, False, 'INT', ['DOUBLE', '...'], 'StringFunctions::field<TYPE_DOUBLE>', 
+    [30457, 'field', True, False, 'INT', ['DOUBLE', '...'], 'StringFunctions::field<TYPE_DOUBLE>',
      'StringFunctions::field_prepare<TYPE_DOUBLE>', 'StringFunctions::field_close<TYPE_DOUBLE>'],
-    [30458, 'field', True, False, 'INT', ['DECIMALV2', '...'], 'StringFunctions::field<TYPE_DECIMALV2>', 
+    [30458, 'field', True, False, 'INT', ['DECIMALV2', '...'], 'StringFunctions::field<TYPE_DECIMALV2>',
      'StringFunctions::field_prepare<TYPE_DECIMALV2>', 'StringFunctions::field_close<TYPE_DECIMALV2>'],
-    [304590, 'field', True, False, 'INT', ['DECIMAL32', '...'], 'StringFunctions::field<TYPE_DECIMAL32>', 
+    [304590, 'field', True, False, 'INT', ['DECIMAL32', '...'], 'StringFunctions::field<TYPE_DECIMAL32>',
      'StringFunctions::field_prepare<TYPE_DECIMAL32>', 'StringFunctions::field_close<TYPE_DECIMAL32>'],
-    [304591, 'field', True, False, 'INT', ['DECIMAL64', '...'], 'StringFunctions::field<TYPE_DECIMAL64>', 
+    [304591, 'field', True, False, 'INT', ['DECIMAL64', '...'], 'StringFunctions::field<TYPE_DECIMAL64>',
      'StringFunctions::field_prepare<TYPE_DECIMAL64>', 'StringFunctions::field_close<TYPE_DECIMAL64>'],
-    [304592, 'field', True, False, 'INT', ['DECIMAL128', '...'], 'StringFunctions::field<TYPE_DECIMAL128>', 
+    [304592, 'field', True, False, 'INT', ['DECIMAL128', '...'], 'StringFunctions::field<TYPE_DECIMAL128>',
      'StringFunctions::field_prepare<TYPE_DECIMAL128>', 'StringFunctions::field_close<TYPE_DECIMAL128>'],
 
     # Binary Functions
@@ -835,6 +835,16 @@ vectorized_functions = [
     [110204, "get_variant_string", False, True, "VARCHAR", ["VARIANT", "VARCHAR"],
      "VariantFunctions::get_variant_string",
      "VariantFunctions::variant_segments_prepare", "VariantFunctions::variant_segments_close"],
+    [110206, "get_variant_date", False, False, "DATE", ["VARIANT", "VARCHAR"],
+     "VariantFunctions::get_variant_date",
+     "VariantFunctions::variant_segments_prepare", "VariantFunctions::variant_segments_close"],
+    [110207, "get_variant_datetime", False, False, "DATETIME", ["VARIANT", "VARCHAR"],
+     "VariantFunctions::get_variant_datetime",
+     "VariantFunctions::variant_segments_prepare", "VariantFunctions::variant_segments_close"],
+    [110208, "get_variant_time", False, False, "TIME", ["VARIANT", "VARCHAR"],
+     "VariantFunctions::get_variant_time",
+     "VariantFunctions::variant_segments_prepare", "VariantFunctions::variant_segments_close"],
+    [110205, "variant_typeof", False, False, "VARCHAR", ["VARIANT"], "VariantFunctions::variant_typeof"],
 
     # aes and base64 function
     [120100, "aes_encrypt", False, False, "VARCHAR", ["VARCHAR", "VARCHAR"], "EncryptionFunctions::aes_encrypt"],
@@ -1385,7 +1395,7 @@ vectorized_functions = [
 
     # user function
     [180000, 'is_role_in_session', True, False, 'BOOLEAN', ['VARCHAR'], 'nullptr'],
-    
+
     # data synopse functions
     [181000, 'bar', True, False, 'VARCHAR', ['BIGINT', "BIGINT", 'BIGINT', 'BIGINT'], 'UtilityFunctions::bar'],
     [181001, 'equiwidth_bucket', True, False, 'BIGINT', ['BIGINT', 'BIGINT', 'BIGINT', 'BIGINT'], 'UtilityFunctions::equiwidth_bucket'],
