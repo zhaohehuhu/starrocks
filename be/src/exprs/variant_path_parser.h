@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "common/statusor.h"
-#include "formats/parquet/variant.h"
 #include "types/variant_value.h"
 #include "util/slice.h"
 
@@ -67,7 +66,7 @@ struct VariantPath {
     static StatusOr<VariantRowValue> seek(const VariantRowValue* value, const VariantPath* variant_path);
 };
 
-struct NativeVariantPath {
+struct VariantState {
     VariantPath variant_path;
 };
 

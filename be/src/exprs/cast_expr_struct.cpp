@@ -107,12 +107,12 @@ StatusOr<ColumnPtr> CastJsonToStruct::evaluate_checked(ExprContext* context, Chu
         ColumnPtr elements = json_columns[i].build_nullable_column();
         if (_field_casts[i] != nullptr) {
             Chunk field_chunk;
-            field_chunk.append_column(std::move(elements), 0);
+            field_chunk.append_column(elements, 0);
             ASSIGN_OR_RETURN(auto casted_field, _field_casts[i]->evaluate_checked(context, &field_chunk));
-            casted_field = NullableColumn::wrap_if_necessary(std::move(casted_field));
-            casted_fields.emplace_back(std::move(*casted_field).mutate());
+            casted_field = NullableColumn::wrap_if_necessary(casted_field);
+            casted_fields.emplace_back(std::move(casted_field)->as_mutable_ptr());
         } else {
-            casted_fields.emplace_back(NullableColumn::wrap_if_necessary(std::move(*elements).mutate()));
+            casted_fields.emplace_back(NullableColumn::wrap_if_necessary(elements->clone())->as_mutable_ptr());
         }
         DCHECK(casted_fields[i]->is_nullable());
     }
@@ -127,7 +127,7 @@ StatusOr<ColumnPtr> CastJsonToStruct::evaluate_checked(ExprContext* context, Chu
     if (column->is_constant()) {
         res = ConstColumn::create(std::move(res), column->size());
     }
-    return std::move(res);
+    return res;
 }
 
 StatusOr<ColumnPtr> CastVariantToStruct::evaluate_checked(ExprContext* context, Chunk* input_chunk) {

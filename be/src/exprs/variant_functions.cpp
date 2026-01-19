@@ -183,5 +183,3 @@ StatusOr<ColumnPtr> VariantFunctions::variant_typeof(FunctionContext* context, c
 }
 
 } // namespace starrocks
-
-#include "gen_cpp/opcode/VariantFunctions.inc"

@@ -1088,13 +1088,6 @@ Status VariantEncoder::encode_column(const ColumnPtr& column, const TypeDescript
                     return encoder.make_variant(out);
                 });
     }
-    case TYPE_DECIMAL256: {
-        if (allow_throw_exception) {
-            return Status::NotSupported("DECIMAL256 is not supported in VARIANT encoding");
-        }
-        builder->append_nulls(static_cast<int>(num_rows));
-        return Status::OK();
-    }
     case TYPE_CHAR: {
         return encode_column_with_viewer<TYPE_CHAR>(
                 column, builder, allow_throw_exception,
