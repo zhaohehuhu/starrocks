@@ -564,18 +564,28 @@ public abstract class Type implements Cloneable {
         // VARIANT
         for (PrimitiveType type : PrimitiveType.VARIANT_COMPATIBLE_TYPE) {
             ScalarType scalar = ScalarType.createType(type);
-            compatibilityMatrix[scalar.ordinal()][VARIANT.ordinal()] = type;
+            compatibilityMatrix[scalar.ordinal()][VARIANT.ordinal()] = PrimitiveType.VARIANT;
         }
-        for (PrimitiveType type : PrimitiveType.VARIANT_UNCOMPATIBLE_TYPE) {
+        for (PrimitiveType type : PrimitiveType.VARIANT_INCOMPATIBLE_TYPES) {
             ScalarType scalar = ScalarType.createType(type);
             compatibilityMatrix[scalar.ordinal()][VARIANT.ordinal()] = PrimitiveType.INVALID_TYPE;
         }
         compatibilityMatrix[VARIANT.ordinal()][DATE.ordinal()] = PrimitiveType.INVALID_TYPE;
         compatibilityMatrix[VARIANT.ordinal()][DATETIME.ordinal()] = PrimitiveType.INVALID_TYPE;
         compatibilityMatrix[VARIANT.ordinal()][TIME.ordinal()] = PrimitiveType.INVALID_TYPE;
+
+        compatibilityMatrix[VARIANT.ordinal()][DECIMALV2.ordinal()] = PrimitiveType.INVALID_TYPE;
         compatibilityMatrix[VARIANT.ordinal()][DECIMAL32.ordinal()] = PrimitiveType.INVALID_TYPE;
         compatibilityMatrix[VARIANT.ordinal()][DECIMAL64.ordinal()] = PrimitiveType.INVALID_TYPE;
         compatibilityMatrix[VARIANT.ordinal()][DECIMAL128.ordinal()] = PrimitiveType.INVALID_TYPE;
+
+        compatibilityMatrix[VARIANT.ordinal()][HLL.ordinal()] = PrimitiveType.INVALID_TYPE;
+        compatibilityMatrix[VARIANT.ordinal()][BITMAP.ordinal()] = PrimitiveType.INVALID_TYPE;
+        compatibilityMatrix[VARIANT.ordinal()][PERCENTILE.ordinal()] = PrimitiveType.INVALID_TYPE;
+
+        compatibilityMatrix[VARIANT.ordinal()][JSON.ordinal()] = PrimitiveType.INVALID_TYPE;
+
+        compatibilityMatrix[VARIANT.ordinal()][VARBINARY.ordinal()] = PrimitiveType.INVALID_TYPE;
         compatibilityMatrix[VARIANT.ordinal()][UNKNOWN_TYPE.ordinal()] = PrimitiveType.INVALID_TYPE;
 
         // Check all the necessary entries that should be filled.
