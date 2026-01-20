@@ -112,7 +112,8 @@ set(UTIL_FILES
   internal_service_recoverable_stub.cpp
   byte_buffer.cpp
   variant_converter.cpp
-  variant_util.cpp
+  variant_encoder.cpp
+  variant.cpp
 )
 
 add_library(Util STATIC

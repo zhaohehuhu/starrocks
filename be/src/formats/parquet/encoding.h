@@ -48,12 +48,16 @@ public:
     virtual Status encode_dict(Encoder* dict_encoder, size_t* num_dicts) {
         return Status::NotSupported("encode_dict is not supported");
     }
+
+    virtual std::string to_string() const { return "Encoder"; }
 };
 
 class Decoder {
 public:
     Decoder() = default;
     virtual ~Decoder() = default;
+
+    virtual std::string to_string() const { return "Decoder"; }
 
     virtual Status set_dict(int chunk_size, size_t num_values, Decoder* decoder) {
         return Status::NotSupported("set_dict is not supported");
