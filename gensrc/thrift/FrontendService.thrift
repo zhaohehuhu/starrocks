@@ -1919,6 +1919,7 @@ struct TGetGrantsToRolesOrUserResponse {
 
 struct TGetProfileRequest {
     1: optional list<string> query_id
+    2: optional bool is_request_all_frontend
 }
 
 struct TGetProfileResponse {
